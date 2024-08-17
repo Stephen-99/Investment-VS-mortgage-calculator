@@ -45,20 +45,39 @@ def MinimumMortgageRestInStocks():
     totalCosts = mortgageRepayments + expenses
 
     stocksVal = calcStocksAmount(0, totalCosts)
-    mortgageVal = HOUSE_PRICE - INITIAL_CAPITAL
-    for ii in range (YEARS_TO_COMPARE*26):
-        mortgageVal = (mortgageVal - mortgageRepayments) * (1 + HOUSE_INTEREST_RATE/100/26)
+    mortgageVal = calcMortgage(mortgageRepayments)
 
     return HOUSES_NEW_VALUE - mortgageVal + stocksVal
 
 def AllInMortgage():
-    pass
+    #TODO: doesn't factor in changing income...
+    return HOUSES_NEW_VALUE - calcMortgage(INCOME/26 - FORTNIGHTLY_EXPENSES_INCL_TAX)
+    
     #Factor in investing in stocks if it's paid off within the timeframe.
 
 def AllInMortgage_SwitchToMinimum():
     pass
 
-#have a func for mortgage calc to. Maybe pass in a func for the calcs using repayment amount to allow for it to switch
+
+#  ~~~~~~~~  HELPER FUNCTIONS ~~~~~~~~  #
+
+
+def calcMortgage(repaymentAmount):
+    mortgageVal = HOUSE_PRICE - INITIAL_CAPITAL
+    for ii in range (YEARS_TO_COMPARE*26):
+        mortgageVal = (mortgageVal - repaymentAmount) * (1 + HOUSE_INTEREST_RATE/100/26)
+    return mortgageVal
+
+def calcTimeToPayOffMortgage(repaymentAmount):
+    mortgageVal = HOUSE_PRICE - INITIAL_CAPITAL
+    fortnights = 0
+    while mortgageVal > 0:
+        fortnights += 1
+        mortgageVal = (mortgageVal - repaymentAmount) * (1 + HOUSE_INTEREST_RATE/100/26)
+
+    return fortnights, mortgageVal
+
+
 
 def calcStocksAmount(initialVal, totalCosts):
     income = INCOME
@@ -72,7 +91,6 @@ def calcStocksAmount(initialVal, totalCosts):
             leftOver = income/26 - totalCosts
 
     return value
-
 
 def formatCurrency(amount):
     if amount != None:
