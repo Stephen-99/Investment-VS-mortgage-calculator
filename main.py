@@ -68,7 +68,10 @@ def MinimumMortgageRestInStocks():
     return HOUSES_NEW_VALUE - mortgageVal + stocksVal
 
 def AllInMortgage():
-    fortnightsToPayOff, mortgageVal = calcTimeToPayOffMortgage()
+    expenses = FORTNIGHTLY_EXPENSES_INCL_TAX
+    if RENT_OUT_A_ROOM:
+        expenses -= 2* ROOM_RENT
+    fortnightsToPayOff, mortgageVal = calcTimeToPayOffMortgage(expenses)
 
     if not fortnightsToPayOff:
         return HOUSES_NEW_VALUE - mortgageVal
@@ -81,6 +84,9 @@ def AllInMortgage_SwitchToMinimum():
 
 #  ~~~~~~~~  HELPER FUNCTIONS ~~~~~~~~  #
 
+#TODO create a function to update costs that takes into account the number of years. Calcs new income if needed and factors in renting a room if needed
+    #Each thingo will need to pass through a function to calculate costs as it is different for each.
+
 def calcMinimumRepayments(years=30):
     rate = HOUSE_INTEREST_RATE/100/26
     paymentPeriods = years*26
@@ -92,9 +98,9 @@ def calcMortgage(repaymentAmount):
         mortgageVal = (mortgageVal - repaymentAmount) * (1 + HOUSE_INTEREST_RATE/100/26)
     return mortgageVal
 
-def calcTimeToPayOffMortgage():
+def calcTimeToPayOffMortgage(expenses):
     income = INCOME
-    repaymentAmount = income/26 - FORTNIGHTLY_EXPENSES_INCL_TAX
+    repaymentAmount = income/26 - expenses
 
     mortgageVal = HOUSE_PRICE - INITIAL_CAPITAL
     fortnights = 0
@@ -105,7 +111,7 @@ def calcTimeToPayOffMortgage():
             return None, mortgageVal
         if INCREASE_INCOME and (fortnights) % 26 == 0:
             income = income * (1 + INCOME_INCREASE_RATE/100)
-            repaymentAmount = income/26 - FORTNIGHTLY_EXPENSES_INCL_TAX
+            repaymentAmount = income/26 - expenses
 
     return fortnights, mortgageVal
 
