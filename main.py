@@ -1,4 +1,3 @@
-
 #can turn these into named cmd line args with default valeus when not provided
 INCOME = 100000
 YEARS_TO_COMPARE = 10
@@ -17,46 +16,62 @@ MONTHS_TO_SWITCH_MORTGAGE = 6
 
 INCREASE_INCOME = False
 INCOME_INCREASE_RATE = 3  #Annual average inc
+HOUSES_NEW_VALUE = HOUSE_PRICE * (1 + HOUSE_APPRECIATION/100) ** YEARS_TO_COMPARE
 
-#Everything ic compounded fortnightly
-#Can create an optional toggle to income increase and calc for it only at the start of a year.
+#Everything is compounded fortnightly
 def main():
     allStocksVal = AllInStocks()
     minMortgageVal = MinimumMortgageRestInStocks()
     allMortgageVal = AllInMortgage()
     switchVal = AllInMortgage_SwitchToMinimum()
 
+    #TODO include printout of house's new val as well as the split in house and stocks where relevant.
+    print(f"Houses updated value after {YEARS_TO_COMPARE} years: \t\t{formatCurrency(HOUSES_NEW_VALUE)}\n")
     print(f"Total Value when all in stocks: \t\t{formatCurrency(allStocksVal)}\n" +
           f"Total Value when min Mortgage: \t\t\t{formatCurrency(minMortgageVal)}\n" +
           f"Total Value when all in Mortgage \t\t{formatCurrency(allMortgageVal)}\n" +
           f"Total Value when switching: \t\t\t{formatCurrency(switchVal)}")
 
-
-#Remember to modularise stuff! a lot of them do similare calculations, re-use stuff!
 def AllInStocks():
     rent = WEEKLY_RENT * 2
     expenses = FORTNIGHTLY_EXPENSES_INCL_TAX
-    income = INCOME
     totalCosts = rent + expenses
-    leftOver = income/26 - totalCosts
-
-    value = INITIAL_CAPITAL
-    for ii in range(YEARS_TO_COMPARE*26):
-        if INCREASE_INCOME and ii % 26 == 0:
-            income = income * (1 + INCOME_INCREASE_RATE/100)
-            leftOver = income/26 - totalCosts
-        value = value * (1 + (STOCK_RETURN_RATE/100/26)) + leftOver
-
-    return value
+    
+    return calcStocksAmount(INITIAL_CAPITAL, totalCosts)
 
 def MinimumMortgageRestInStocks():
-    pass
+    mortgageRepayments = 1135   #TODO find an alg to calc this...
+    expenses = FORTNIGHTLY_EXPENSES_INCL_TAX
+    totalCosts = mortgageRepayments + expenses
+
+    stocksVal = calcStocksAmount(0, totalCosts)
+    mortgageVal = HOUSE_PRICE - INITIAL_CAPITAL
+    for ii in range (YEARS_TO_COMPARE*26):
+        mortgageVal = (mortgageVal - mortgageRepayments) * (1 + HOUSE_INTEREST_RATE/100/26)
+
+    return HOUSES_NEW_VALUE - mortgageVal + stocksVal
 
 def AllInMortgage():
     pass
+    #Factor in investing in stocks if it's paid off within the timeframe.
 
 def AllInMortgage_SwitchToMinimum():
     pass
+
+#have a func for mortgage calc to. Maybe pass in a func for the calcs using repayment amount to allow for it to switch
+
+def calcStocksAmount(initialVal, totalCosts):
+    income = INCOME
+    leftOver = income/26 - totalCosts
+
+    value = initialVal
+    for ii in range(YEARS_TO_COMPARE*26):
+        value = value * (1 + (STOCK_RETURN_RATE/100/26)) + leftOver
+        if INCREASE_INCOME and (ii+1) % 26 == 0:
+            income = income * (1 + INCOME_INCREASE_RATE/100)
+            leftOver = income/26 - totalCosts
+
+    return value
 
 
 def formatCurrency(amount):
