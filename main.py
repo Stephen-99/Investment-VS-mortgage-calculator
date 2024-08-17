@@ -26,14 +26,28 @@ def main():
     allMortgageVal = AllInMortgage()
     switchVal = AllInMortgage_SwitchToMinimum()
 
-    print(f"Total Value when all in stocks: \t\t\t{allStocksVal}\n" +
-          f"Total Value when min Mortgage: \t\t\t{minMortgageVal}\n" +
-          f"Total Value when all in Mortgage \t\t\t{allMortgageVal}\n" +
-          f"Total Value when switching: \t\t\t{switchVal}")
+    print(f"Total Value when all in stocks: \t\t{formatCurrency(allStocksVal)}\n" +
+          f"Total Value when min Mortgage: \t\t\t{formatCurrency(minMortgageVal)}\n" +
+          f"Total Value when all in Mortgage \t\t{formatCurrency(allMortgageVal)}\n" +
+          f"Total Value when switching: \t\t\t{formatCurrency(switchVal)}")
 
 
+#Remember to modularise stuff! a lot of them do similare calculations, re-use stuff!
 def AllInStocks():
-    pass
+    rent = WEEKLY_RENT * 2
+    expenses = FORTNIGHTLY_EXPENSES_INCL_TAX
+    income = INCOME
+    totalCosts = rent + expenses
+    leftOver = income/26 - totalCosts
+
+    value = INITIAL_CAPITAL
+    for ii in range(YEARS_TO_COMPARE*26):
+        if INCREASE_INCOME and ii % 26 == 0:
+            income = income * (1 + INCOME_INCREASE_RATE/100)
+            leftOver = income/26 - totalCosts
+        value = value * (1 + (STOCK_RETURN_RATE/100/26)) + leftOver
+
+    return value
 
 def MinimumMortgageRestInStocks():
     pass
@@ -45,7 +59,9 @@ def AllInMortgage_SwitchToMinimum():
     pass
 
 
-
+def formatCurrency(amount):
+    if amount != None:
+        return '${:,.2f}'.format(amount)
 
 
 
