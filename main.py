@@ -50,8 +50,11 @@ def MinimumMortgageRestInStocks():
     return HOUSES_NEW_VALUE - mortgageVal + stocksVal
 
 def AllInMortgage():
-    #TODO: doesn't factor in changing income...
-    return HOUSES_NEW_VALUE - calcMortgage(INCOME/26 - FORTNIGHTLY_EXPENSES_INCL_TAX)
+    fortnightsToPayOff, mortgageVal = calcTimeToPayOffMortgage()
+
+    if not fortnightsToPayOff:
+        return HOUSES_NEW_VALUE - mortgageVal
+    return HOUSES_NEW_VALUE + calcStocksAmount(-mortgageVal, FORTNIGHTLY_EXPENSES_INCL_TAX, fortnightsToInvest=YEARS_TO_COMPARE*26 - fortnightsToPayOff )
     
     #Factor in investing in stocks if it's paid off within the timeframe.
 
@@ -68,23 +71,29 @@ def calcMortgage(repaymentAmount):
         mortgageVal = (mortgageVal - repaymentAmount) * (1 + HOUSE_INTEREST_RATE/100/26)
     return mortgageVal
 
-def calcTimeToPayOffMortgage(repaymentAmount):
+def calcTimeToPayOffMortgage():
+    income = INCOME
+    repaymentAmount = income/26 - FORTNIGHTLY_EXPENSES_INCL_TAX
+
     mortgageVal = HOUSE_PRICE - INITIAL_CAPITAL
     fortnights = 0
     while mortgageVal > 0:
         fortnights += 1
         mortgageVal = (mortgageVal - repaymentAmount) * (1 + HOUSE_INTEREST_RATE/100/26)
+        if fortnights == YEARS_TO_COMPARE * 26:
+            return None, mortgageVal
+        if INCREASE_INCOME and (fortnights) % 26 == 0:
+            income = income * (1 + INCOME_INCREASE_RATE/100)
+            repaymentAmount = income/26 - FORTNIGHTLY_EXPENSES_INCL_TAX
 
     return fortnights, mortgageVal
 
-
-
-def calcStocksAmount(initialVal, totalCosts):
+def calcStocksAmount(initialVal, totalCosts, fortnightsToInvest=YEARS_TO_COMPARE*26):
     income = INCOME
     leftOver = income/26 - totalCosts
 
     value = initialVal
-    for ii in range(YEARS_TO_COMPARE*26):
+    for ii in range(fortnightsToInvest):
         value = value * (1 + (STOCK_RETURN_RATE/100/26)) + leftOver
         if INCREASE_INCOME and (ii+1) % 26 == 0:
             income = income * (1 + INCOME_INCREASE_RATE/100)
