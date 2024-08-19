@@ -1,5 +1,5 @@
 INCOME = 100000
-YEARS_TO_COMPARE = 30
+YEARS_TO_COMPARE = 30 #Only whole numbers
 WEEKLY_RENT = 450
 FORTNIGHTLY_EXPENSES_INCL_TAX = 2000
 INITIAL_CAPITAL = 90000
@@ -9,7 +9,7 @@ STOCK_RETURN_RATE = 8  #avg annual % return
 HOUSE_APPRECIATION = 3  #annual average inc in value
 RENT_OUT_A_ROOM = True
 ROOM_RENT = 200  #Weekly 
-YEARS_TO_RENT_ROOM = 5  #Currently doesn't do anything.
+YEARS_TO_RENT_ROOM = 2 
 INCREASE_INCOME = True
 INCOME_INCREASE_RATE = 3  #Annual average inc   THIS IS ACTUALLY A BAD APPROXIMATION. Income increase doesn't compound. 
                           #It also is likely to taper off somewhat. I also don't increase expenses so it's better to use a
@@ -52,7 +52,7 @@ def AllInStocks():
     expenses = FORTNIGHTLY_EXPENSES_INCL_TAX
     totalCosts = rent + expenses
     
-    return calcStocksAmount(INITIAL_CAPITAL, totalCosts)
+    return calcStocksAmount(INITIAL_CAPITAL, totalCosts, stocksOnlyExpenses)
 
 def MinimumMortgageRestInStocks():
     mortgageRepayments = calcMinimumRepayments()
@@ -62,7 +62,11 @@ def MinimumMortgageRestInStocks():
     if RENT_OUT_A_ROOM:
         totalCosts -= ROOM_RENT * 2
 
-    stocksVal = calcStocksAmount(0, totalCosts)
+    #CURRENTLY BREAKS APART WHEN GOING MORE THAN 30 YEARS!!!
+        #mortgage doesn't stop calculating
+        #expenses don't update for stocks. We can now put all in for stocks!
+        #May need to differentiate the mortgage expenses functions.
+    stocksVal = calcStocksAmount(0, totalCosts, mortgageCosts)
     mortgageVal = calcMortgage(mortgageRepayments)
 
     return HOUSES_NEW_VALUE - mortgageVal + stocksVal
@@ -76,7 +80,7 @@ def AllInMortgage():
     if not fortnightsToPayOff:
         return HOUSES_NEW_VALUE - mortgageVal
     #Invest in stocks once home is paid off
-    return HOUSES_NEW_VALUE + calcStocksAmount(-mortgageVal, FORTNIGHTLY_EXPENSES_INCL_TAX, fortnightsToInvest=YEARS_TO_COMPARE*26 - fortnightsToPayOff )
+    return HOUSES_NEW_VALUE + calcStocksAmount(-mortgageVal, expenses, mortgageCosts, fortnightsToInvest=YEARS_TO_COMPARE*26 - fortnightsToPayOff)
 
 def AllInMortgage_SwitchToMinimum():
     pass
@@ -84,8 +88,6 @@ def AllInMortgage_SwitchToMinimum():
 
 #  ~~~~~~~~  HELPER FUNCTIONS ~~~~~~~~  #
 
-#TODO create a function to update costs that takes into account the number of years. Calcs new income if needed and factors in renting a room if needed
-    #Each thingo will need to pass through a function to calculate costs as it is different for each.
 
 def calcMinimumRepayments(years=30):
     rate = HOUSE_INTEREST_RATE/100/26
@@ -99,34 +101,46 @@ def calcMortgage(repaymentAmount):
     return mortgageVal
 
 def calcTimeToPayOffMortgage(expenses):
-    income = INCOME
-    repaymentAmount = income/26 - expenses
-
+    repaymentAmount = INCOME/26 - expenses
     mortgageVal = HOUSE_PRICE - INITIAL_CAPITAL
+
     fortnights = 0
     while mortgageVal > 0:
         fortnights += 1
         mortgageVal = (mortgageVal - repaymentAmount) * (1 + HOUSE_INTEREST_RATE/100/26)
         if fortnights == YEARS_TO_COMPARE * 26:
             return None, mortgageVal
-        if INCREASE_INCOME and (fortnights) % 26 == 0:
-            income = income * (1 + INCOME_INCREASE_RATE/100)
-            repaymentAmount = income/26 - expenses
+        if fortnights % 26 == 0:
+            repaymentAmount = updateAmountLeftOver(fortnights/26, mortgageCosts, expenses)
 
     return fortnights, mortgageVal
 
-def calcStocksAmount(initialVal, totalCosts, fortnightsToInvest=YEARS_TO_COMPARE*26):
-    income = INCOME
-    leftOver = income/26 - totalCosts
+def calcStocksAmount(initialVal, totalCosts, costFn, fortnightsToInvest=YEARS_TO_COMPARE*26):
+    leftOver = INCOME/26 - totalCosts
 
     value = initialVal
     for ii in range(fortnightsToInvest):
         value = value * (1 + (STOCK_RETURN_RATE/100/26)) + leftOver
-        if INCREASE_INCOME and (ii+1) % 26 == 0:
-            income = income * (1 + INCOME_INCREASE_RATE/100)
-            leftOver = income/26 - totalCosts
-
+        if (ii+1) % 26 == 0:
+            leftOver = updateAmountLeftOver(int((ii+1) / 26), costFn, totalCosts)
     return value
+
+def updateAmountLeftOver(years, costsFn, currentExpenses):
+    income = INCOME
+    if INCREASE_INCOME:
+        income = INCOME * (1 + INCOME_INCREASE_RATE/100) ** years
+    expenses = costsFn(years, currentExpenses)
+    return income /26 - expenses
+
+#Could add modelling for increasing different expenses
+def stocksOnlyExpenses(years, currentExpenses):
+    return currentExpenses
+
+#TODO verify that this works. It seems disproportional that 1 year of renting it out can provide 1.2m dif over 30 years
+def mortgageCosts(years, currentExpenses):
+    if RENT_OUT_A_ROOM and years >= YEARS_TO_RENT_ROOM:
+        return currentExpenses + 2 * ROOM_RENT
+    return currentExpenses
 
 def formatCurrency(amount):
     if amount != None:
