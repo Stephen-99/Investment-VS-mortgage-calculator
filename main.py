@@ -1,27 +1,33 @@
-INCOME = 100000
-YEARS_TO_COMPARE = 30 #Only whole numbers
-WEEKLY_RENT = 450
-FORTNIGHTLY_EXPENSES_INCL_TAX = 2000
-INITIAL_CAPITAL = 90000
-HOUSE_PRICE = 500000
-HOUSE_INTEREST_RATE = 5  #annual %
-STOCK_RETURN_RATE = 8  #avg annual % return
-HOUSE_APPRECIATION = 3  #annual average inc in value
-RENT_OUT_A_ROOM = True
-ROOM_RENT = 200  #Weekly 
-YEARS_TO_RENT_ROOM = 2 
-INCREASE_INCOME = True
-INCOME_INCREASE_RATE = 3  #Annual average inc   THIS IS ACTUALLY A BAD APPROXIMATION. Income increase doesn't compound. 
-                          #It also is likely to taper off somewhat. I also don't increase expenses so it's better to use a
-                          #lower income increase rate and assume the rest of increased income goes to increased expenses.
+def setConstants():
+    global INCOME, INITIAL_TAX, YEARS_TO_COMPARE, WEEKLY_RENT, FORTNIGHTLY_EXPENSES_INCL_TAX, INITIAL_CAPITAL, HOUSE_PRICE
+    global HOUSE_INTEREST_RATE, STOCK_RETURN_RATE, HOUSE_APPRECIATION, RENT_OUT_A_ROOM, ROOM_RENT, YEARS_TO_RENT_ROOM
+    global INCREASE_INCOME, INCOME_INCREASE_RATE, MONTHS_TO_SWITCH_MORTGAGE, HOUSES_NEW_VALUE
 
-#Could also try a certain pertencage of loan paid of or somethign
-#Better would be to work backwards and calculate the optimal value.
-#Run it as a param sweep? start with big steps and narrow down to the optimal value
-MONTHS_TO_SWITCH_MORTGAGE = 6
+    INCOME = 100000
+    INITIAL_TAX = calculateTax(INCOME)
+    YEARS_TO_COMPARE = 30 #Only whole numbers
+    WEEKLY_RENT = 450
+    FORTNIGHTLY_EXPENSES_INCL_TAX = 1000
+    INITIAL_CAPITAL = 90000
+    HOUSE_PRICE = 500000
+    HOUSE_INTEREST_RATE = 5  #annual %
+    STOCK_RETURN_RATE = 8  #avg annual % return
+    HOUSE_APPRECIATION = 3  #annual average inc in value
+    RENT_OUT_A_ROOM = True
+    ROOM_RENT = 200  #Weekly 
+    YEARS_TO_RENT_ROOM = 2 
+    INCREASE_INCOME = True
+    INCOME_INCREASE_RATE = 3  #Annual average inc   THIS IS ACTUALLY A BAD APPROXIMATION. Income increase doesn't compound. 
+                            #It also is likely to taper off somewhat. I also don't increase expenses so it's better to use a
+                            #lower income increase rate and assume the rest of increased income goes to increased expenses.
+
+    #Could also try a certain pertencage of loan paid of or somethign
+    #Better would be to work backwards and calculate the optimal value.
+    #Run it as a param sweep? start with big steps and narrow down to the optimal value
+    MONTHS_TO_SWITCH_MORTGAGE = 6
 
 
-HOUSES_NEW_VALUE = HOUSE_PRICE * (1 + HOUSE_APPRECIATION/100) ** YEARS_TO_COMPARE
+    HOUSES_NEW_VALUE = HOUSE_PRICE * (1 + HOUSE_APPRECIATION/100) ** YEARS_TO_COMPARE
 
 
 # Takeaways. When homeloan interest rates are lower, a home loan is worthwhile. At higher interest rates, they become a worse investment.
@@ -101,7 +107,7 @@ def calcMortgage(repaymentAmount):
     return mortgageVal
 
 def calcTimeToPayOffMortgage(expenses):
-    repaymentAmount = INCOME/26 - expenses
+    repaymentAmount = (INCOME-INITIAL_TAX)/26 - expenses
     mortgageVal = HOUSE_PRICE - INITIAL_CAPITAL
 
     fortnights = 0
@@ -115,8 +121,10 @@ def calcTimeToPayOffMortgage(expenses):
 
     return fortnights, mortgageVal
 
-def calcStocksAmount(initialVal, totalCosts, costFn, fortnightsToInvest=YEARS_TO_COMPARE*26):
-    leftOver = INCOME/26 - totalCosts
+def calcStocksAmount(initialVal, totalCosts, costFn, fortnightsToInvest=None):
+    if not fortnightsToInvest:
+        fortnightsToInvest = YEARS_TO_COMPARE*26
+    leftOver = (INCOME-INITIAL_TAX)/26 - totalCosts
 
     value = initialVal
     for ii in range(fortnightsToInvest):
@@ -129,6 +137,7 @@ def updateAmountLeftOver(years, costsFn, currentExpenses):
     income = INCOME
     if INCREASE_INCOME:
         income = INCOME * (1 + INCOME_INCREASE_RATE/100) ** years
+    income -= calculateTax(income)
     expenses = costsFn(years, currentExpenses)
     return income /26 - expenses
 
@@ -136,11 +145,21 @@ def updateAmountLeftOver(years, costsFn, currentExpenses):
 def stocksOnlyExpenses(years, currentExpenses):
     return currentExpenses
 
-#TODO verify that this works. It seems disproportional that 1 year of renting it out can provide 1.2m dif over 30 years
 def mortgageCosts(years, currentExpenses):
     if RENT_OUT_A_ROOM and years >= YEARS_TO_RENT_ROOM:
         return currentExpenses + 2 * ROOM_RENT
     return currentExpenses
+
+def calculateTax(income):
+    if income > 190000:
+        return 51638 + 0.45 * (income-190000)
+    if income > 135000:
+        return 31288 + 0.37 * (income-135000)
+    if income > 45000:
+        return 4288 + 0.30 * (income-45000)
+    if income > 18200:
+        return 0.16 * (income-18200)
+    return 0
 
 def formatCurrency(amount):
     if amount != None:
@@ -150,4 +169,5 @@ def formatCurrency(amount):
 
 
 if __name__ == "__main__":
+    setConstants()
     main()
