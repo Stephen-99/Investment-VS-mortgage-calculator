@@ -67,14 +67,8 @@ def MinimumMortgageRestInStocks():
     if RENT_OUT_A_ROOM:
         totalCosts -= ROOM_RENT * 2
 
-    #CURRENTLY BREAKS APART WHEN GOING MORE THAN 30 YEARS!!!
-        #mortgage doesn't stop calculating
-        #expenses don't update for stocks. We can now put all in for stocks!
-        #May need to differentiate the mortgage expenses functions.
     mortgageVal = calcMortgage(mortgageRepayments)
     stocksVal = calcStocksAmount(0, totalCosts, minimumMortgageCosts)
-    #mortgageVal = calcMortgage(mortgageRepayments)
-    
 
     return HOUSES_NEW_VALUE - mortgageVal + stocksVal
 
