@@ -1,5 +1,5 @@
 def setConstants():
-    global INCOME, INITIAL_TAX, YEARS_TO_COMPARE, WEEKLY_RENT, FORTNIGHTLY_EXPENSES_INCL_TAX, INITIAL_CAPITAL, HOUSE_PRICE
+    global INCOME, INITIAL_TAX, YEARS_TO_COMPARE, WEEKLY_RENT, FORTNIGHTLY_EXPENSES, INITIAL_CAPITAL, HOUSE_PRICE
     global HOUSE_INTEREST_RATE, STOCK_RETURN_RATE, HOUSE_APPRECIATION, RENT_OUT_A_ROOM, ROOM_RENT, YEARS_TO_RENT_ROOM
     global INCREASE_INCOME, INCOME_INCREASE_RATE, MONTHS_TO_SWITCH_MORTGAGE, HOUSES_NEW_VALUE
 
@@ -7,7 +7,7 @@ def setConstants():
     INITIAL_TAX = calculateTax(INCOME)
     YEARS_TO_COMPARE = 30 #Only whole numbers
     WEEKLY_RENT = 450
-    FORTNIGHTLY_EXPENSES_INCL_TAX = 1000
+    FORTNIGHTLY_EXPENSES = 1000
     INITIAL_CAPITAL = 90000
     HOUSE_PRICE = 500000
     HOUSE_INTEREST_RATE = 5  #annual %
@@ -54,14 +54,14 @@ def main():
 
 def AllInStocks():
     rent = WEEKLY_RENT * 2
-    expenses = FORTNIGHTLY_EXPENSES_INCL_TAX
+    expenses = FORTNIGHTLY_EXPENSES
     totalCosts = rent + expenses
     
     return calcStocksAmount(INITIAL_CAPITAL, totalCosts, stocksOnlyExpenses)
 
 def MinimumMortgageRestInStocks():
     mortgageRepayments = calcMinimumRepayments()
-    expenses = FORTNIGHTLY_EXPENSES_INCL_TAX
+    expenses = FORTNIGHTLY_EXPENSES
     totalCosts = mortgageRepayments + expenses
 
     if RENT_OUT_A_ROOM:
@@ -73,7 +73,7 @@ def MinimumMortgageRestInStocks():
     return HOUSES_NEW_VALUE - mortgageVal + stocksVal
 
 def AllInMortgage():
-    expenses = FORTNIGHTLY_EXPENSES_INCL_TAX
+    expenses = FORTNIGHTLY_EXPENSES
     if RENT_OUT_A_ROOM:
         expenses -= 2* ROOM_RENT
     fortnightsToPayOff, mortgageVal = calcTimeToPayOffMortgage(expenses)
@@ -85,7 +85,20 @@ def AllInMortgage():
     return HOUSES_NEW_VALUE + calcStocksAmount(-mortgageVal, expenses, mortgageCosts, fortnightsToInvest=YEARS_TO_COMPARE*26 - fortnightsToPayOff)
 
 def AllInMortgage_SwitchToMinimum():
-    pass
+    expenses = FORTNIGHTLY_EXPENSES
+    if RENT_OUT_A_ROOM:
+        expenses -= 2* ROOM_RENT
+
+    repaymentAmount = (INCOME-INITIAL_TAX)/26 - expenses
+    mortgageVal = HOUSE_PRICE - INITIAL_CAPITAL
+    for ii in range (int(MONTHS_TO_SWITCH_MORTGAGE/12*26)):
+        mortgageVal = (mortgageVal - repaymentAmount) * (1 + HOUSE_INTEREST_RATE/100/26)
+        if mortgageVal < 0:
+            return mortgageVal
+        if (ii+1) % 26 == 0:
+            repaymentAmount, expenses = updateAmountLeftOver((ii+1)/26, mortgageCosts, expenses)
+            #TODO will need to update to /fortnight to allow for switching after so many months
+    return mortgageVal
 
 
 #  ~~~~~~~~  HELPER FUNCTIONS ~~~~~~~~  #
@@ -101,7 +114,7 @@ def calcMortgage(repaymentAmount):
     for ii in range (YEARS_TO_COMPARE*26):
         mortgageVal = (mortgageVal - repaymentAmount) * (1 + HOUSE_INTEREST_RATE/100/26)
         if mortgageVal < 0:
-            mortgageVal
+            return mortgageVal
     return mortgageVal
 
 def calcTimeToPayOffMortgage(expenses):
