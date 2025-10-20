@@ -4,7 +4,7 @@
 WATER = 340     #Every 2 months
 ELEC = 450      #Every 2 months
 GAS = 220       #Every 3 months
-RATES = 3200    #Yearly (This is indicitave of a place I will live not of our hosue)
+RATES = 3200    #Yearly 
 FOOD = 400      #Weekly
 
 OTHER_EXPENSES = 280   #Fortnightly
